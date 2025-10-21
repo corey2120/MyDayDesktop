@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=MyDay
+Comment=Task manager combining Tasks, Calendar and Notes for Linux
+Exec=myday
+Icon=myday
+Categories=Office;
+Terminal=false
+StartupNotify=true

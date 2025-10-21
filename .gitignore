@@ -1,0 +1,30 @@
+# Gradle
+.gradle/
+build/
+gradle-app.setting
+!gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# OS
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Build outputs
+*.jar
+*.tar.gz
+*.deb
+*.rpm
+*.AppImage
+build-dir/
+.flatpak-builder/
+
+# User data
+.myday/

@@ -36,7 +36,7 @@ fun TasksForListScreen(
     val completedTasks = tasksForList.filter { it.isCompleted }
 
     if (showAddTaskDialog) {
-        AddTaskToListDialog(
+        EnhancedTaskDialog(
             viewModel = viewModel,
             listId = listId,
             onDismiss = { showAddTaskDialog = false }
@@ -100,15 +100,17 @@ fun TasksForListScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
+                    .padding(paddingValues),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (incompleteTasks.isNotEmpty()) {
                     item {
                         Text(
                             "TO DO",
-                            style = MaterialTheme.typography.labelLarge,
+                            style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(16.dp)
+                            modifier = Modifier.padding(vertical = 8.dp)
                         )
                     }
                     items(incompleteTasks) { task ->
@@ -121,13 +123,19 @@ fun TasksForListScreen(
                     }
                 }
 
+                if (incompleteTasks.isNotEmpty() && completedTasks.isNotEmpty()) {
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
+
                 if (completedTasks.isNotEmpty()) {
                     item {
                         Text(
                             "COMPLETED",
-                            style = MaterialTheme.typography.labelLarge,
+                            style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(16.dp)
+                            modifier = Modifier.padding(vertical = 8.dp)
                         )
                     }
                     items(completedTasks) { task ->
@@ -151,50 +159,108 @@ private fun TaskListItem(
     onToggle: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
     ) {
-        IconButton(onClick = onToggle) {
-            Icon(
-                if (task.isCompleted) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
-                contentDescription = if (task.isCompleted) "Mark incomplete" else "Mark complete",
-                tint = taskList?.let { Color(it.color) } ?: MaterialTheme.colorScheme.primary
-            )
-        }
-        Column(
-            modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = task.description,
-                style = MaterialTheme.typography.bodyLarge,
-                textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
-                color = if (task.isCompleted)
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                else
-                    MaterialTheme.colorScheme.onSurface
-            )
-            val taskDate = parseDateTime(task.dateTime)
-            val today = Calendar.getInstance()
-            val taskCal = Calendar.getInstance().apply { if (taskDate != null) time = taskDate as Date }
-            if (taskDate != null &&
-                !(taskCal.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
-                        taskCal.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR))) {
-                Text(
-                    text = java.text.SimpleDateFormat("MMM d", Locale.getDefault()).format(taskDate),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            IconButton(onClick = onToggle) {
+                Icon(
+                    if (task.isCompleted) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
+                    contentDescription = if (task.isCompleted) "Mark incomplete" else "Mark complete",
+                    tint = taskList?.let { Color(it.color) } ?: MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(28.dp)
                 )
             }
-        }
-        IconButton(onClick = onDelete) {
-            Icon(
-                Icons.Default.Delete,
-                contentDescription = "Delete task",
-                tint = MaterialTheme.colorScheme.error
-            )
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 12.dp)
+            ) {
+                Text(
+                    text = task.description,
+                    style = MaterialTheme.typography.bodyLarge,
+                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
+                    color = if (task.isCompleted)
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    else
+                        MaterialTheme.colorScheme.onSurface
+                )
+
+                // Priority indicator
+                if (task.priority != TaskPriority.NONE) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = task.priority.toDisplayName(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(task.priority.toColor())
+                    )
+                }
+
+                // Date display
+                val taskDate = parseDateTime(task.dateTime)
+                val today = Calendar.getInstance()
+                val taskCal = Calendar.getInstance().apply { if (taskDate != null) time = taskDate as Date }
+                if (taskDate != null &&
+                    !(taskCal.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
+                            taskCal.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR))) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = java.text.SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(taskDate),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                }
+
+                // Tags
+                if (task.tags.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        task.tags.take(3).forEach { tag ->
+                            Surface(
+                                color = taskList?.let { Color(it.color).copy(alpha = 0.2f) }
+                                    ?: MaterialTheme.colorScheme.primaryContainer,
+                                shape = MaterialTheme.shapes.small
+                            ) {
+                                Text(
+                                    text = tag,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = taskList?.let { Color(it.color) }
+                                        ?: MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+                        if (task.tags.size > 3) {
+                            Text(
+                                text = "+${task.tags.size - 3}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            IconButton(onClick = onDelete) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Delete task",
+                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                )
+            }
         }
     }
 }

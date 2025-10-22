@@ -17,11 +17,27 @@ fun HomeCalendarScreen(viewModel: AppViewModel) {
     val tasks by viewModel.tasks.collectAsState()
     val taskLists by viewModel.taskLists.collectAsState()
     val settings by viewModel.settings.collectAsState()
-    
+    val calendarEvents by viewModel.calendarEvents.collectAsState()
+
     var selectedDate by remember { mutableStateOf(Date()) }
     var currentMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
     var currentYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
     var showAddTaskDialog by remember { mutableStateOf(false) }
+
+    // Auto-sync Google Calendar when enabled
+    LaunchedEffect(settings.googleCalendar.syncEnabled, currentMonth, currentYear) {
+        if (settings.googleCalendar.syncEnabled && settings.googleCalendar.selectedCalendars.isNotEmpty()) {
+            val calendar = Calendar.getInstance()
+            calendar.set(currentYear, currentMonth, 1)
+            val startDate = calendar.time
+
+            calendar.add(Calendar.MONTH, 1)
+            calendar.add(Calendar.DAY_OF_MONTH, -1)
+            val endDate = calendar.time
+
+            viewModel.syncGoogleCalendar(startDate, endDate)
+        }
+    }
     
     val tasksForSelectedDate by remember {
         derivedStateOf {
@@ -38,79 +54,125 @@ fun HomeCalendarScreen(viewModel: AppViewModel) {
             }
         }
     }
-    
-    if (showAddTaskDialog) {
-        AddTaskDialog(
-            viewModel = viewModel,
-            selectedDate = selectedDate,
-            onDismiss = { showAddTaskDialog = false }
-        )
+
+    val eventsForSelectedDate by remember {
+        derivedStateOf {
+            calendarEvents.filter { event ->
+                try {
+                    val eventDate = Date(event.startDateTime)
+                    val selectedLocalDate = selectedDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+                    val eventLocalDate = eventDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+                    eventLocalDate == selectedLocalDate
+                } catch (e: Exception) {
+                    false
+                }
+            }
+        }
     }
     
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
-        // Home Widgets
+    if (showAddTaskDialog) {
+        val generalList = taskLists.find { it.name == "General" } ?: taskLists.firstOrNull()
+        if (generalList != null) {
+            EnhancedTaskDialog(
+                viewModel = viewModel,
+                listId = generalList.id,
+                onDismiss = { showAddTaskDialog = false }
+            )
+        }
+    }
+    
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Home Widgets with improved spacing
         if (settings.showGreeting) {
             item {
                 GreetingWidget()
             }
         }
-        
+
         if (settings.showQuote) {
             item {
                 QuoteWidget()
             }
         }
-        
+
         if (settings.showNews) {
             item {
                 NewsWidget(category = settings.newsCategory, source = settings.newsSource)
             }
         }
-        
-        // Calendar Section
+
+        // Calendar Section with enhanced visual hierarchy
         item {
-            Column(
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 8.dp, bottom = 8.dp)
+                    .padding(horizontal = 16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             ) {
-                Text(
-                    text = "My Calendar",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                SimpleCalendarView(
-                    tasks = tasks,
-                    selectedDate = selectedDate,
-                    onDateClick = { date ->
-                        selectedDate = date
-                    },
-                    currentMonth = currentMonth,
-                    currentYear = currentYear,
-                    onMonthChange = { month, year ->
-                        currentMonth = month
-                        currentYear = year
-                    }
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = "My Calendar",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    SimpleCalendarView(
+                        tasks = tasks,
+                        selectedDate = selectedDate,
+                        onDateClick = { date ->
+                            selectedDate = date
+                        },
+                        currentMonth = currentMonth,
+                        currentYear = currentYear,
+                        onMonthChange = { month, year ->
+                            currentMonth = month
+                            currentYear = year
+                        },
+                        showHolidays = settings.showHolidays,
+                        calendarEvents = calendarEvents
+                    )
+                }
             }
         }
-        
-        // Task Viewer for Selected Date
+
+        // Task Viewer for Selected Date with improved layout
         item {
-            Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                TaskViewer(
-                    selectedDate = selectedDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate(),
-                    tasks = tasksForSelectedDate,
-                    taskLists = taskLists,
-                    onAddTaskClicked = { showAddTaskDialog = true },
-                    onToggleTask = { task ->
-                        viewModel.toggleTaskCompleted(task.id)
-                    },
-                    onDeleteTask = { task ->
-                        viewModel.deleteTask(task)
-                    }
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
                 )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    TaskViewer(
+                        selectedDate = selectedDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate(),
+                        tasks = tasksForSelectedDate,
+                        taskLists = taskLists,
+                        calendarEvents = eventsForSelectedDate,
+                        onAddTaskClicked = { showAddTaskDialog = true },
+                        onToggleTask = { task ->
+                            viewModel.toggleTaskCompleted(task.id)
+                        },
+                        onDeleteTask = { task ->
+                            viewModel.deleteTask(task)
+                        },
+                        showHolidays = settings.showHolidays
+                    )
+                }
             }
         }
     }

@@ -68,7 +68,8 @@ fun QuoteWidget() {
             "Believe in yourself. You are braver than you think, more talented than you know, and capable of more than you imagine." to "Roy T. Bennett",
             "I learned that courage was not the absence of fear, but the triumph over it." to "Nelson Mandela",
             "There is only one way to avoid criticism: do nothing, say nothing, and be nothing." to "Aristotle",
-            "Do what you can with all you have, wherever you are." to "Theodore Roosevelt"
+            "Do what you can with all you have, wherever you are." to "Theodore Roosevelt",
+            "Everyone has a photographic memory, some just don't have film." to "Steven Wright"
         )
     }
     

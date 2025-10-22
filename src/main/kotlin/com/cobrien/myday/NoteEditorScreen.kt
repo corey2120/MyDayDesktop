@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -28,6 +29,8 @@ fun NoteEditorScreen(
     viewModel: AppViewModel,
     onBack: () -> Unit
 ) {
+    val noteCategories by viewModel.noteCategories.collectAsState()
+
     val note = remember(noteId) {
         if (noteId.isNullOrBlank()) {
             Note(title = "", content = "")
@@ -40,6 +43,7 @@ fun NoteEditorScreen(
     var backgroundColor by remember { mutableStateOf(Color(note.backgroundColor)) }
     var textColor by remember { mutableStateOf(Color(note.textColor)) }
     var fontSize by remember { mutableStateOf(note.fontSize) }
+    var selectedCategoryId by remember { mutableStateOf(note.categoryId) }
     var showColorPicker by remember { mutableStateOf(false) }
     var showSaveDialog by remember { mutableStateOf(false) }
 
@@ -85,7 +89,8 @@ fun NoteEditorScreen(
                 Text(
                     text = dateFormat.format(Date(timestamp)),
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    color = textColor.copy(alpha = 0.85f),
+                    fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
@@ -134,7 +139,10 @@ fun NoteEditorScreen(
                 )
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.verticalScroll(rememberScrollState())
+                ) {
                     Text(
                         if (note.title != "Untitled")
                             "Edit the title for this note:"
@@ -155,6 +163,38 @@ fun NoteEditorScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+
+                    // Category selector
+                    Text(
+                        "Category (optional):",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // "None" option
+                        FilterChip(
+                            selected = selectedCategoryId == null,
+                            onClick = { selectedCategoryId = null },
+                            label = { Text("None") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        noteCategories.forEach { category ->
+                            FilterChip(
+                                selected = selectedCategoryId == category.id,
+                                onClick = { selectedCategoryId = category.id },
+                                label = { Text("${category.icon} ${category.name}") },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
                 }
             },
             confirmButton = {
@@ -165,7 +205,9 @@ fun NoteEditorScreen(
                             content = content,
                             backgroundColor = backgroundColor.toArgb().toLong(),
                             textColor = textColor.toArgb().toLong(),
-                            fontSize = fontSize
+                            fontSize = fontSize,
+                            categoryId = selectedCategoryId,
+                            lastModified = System.currentTimeMillis()
                         )
                         if (noteId.isNullOrBlank()) {
                             viewModel.addNote(
@@ -173,7 +215,8 @@ fun NoteEditorScreen(
                                 content = updatedNote.content,
                                 backgroundColor = updatedNote.backgroundColor,
                                 textColor = updatedNote.textColor,
-                                fontSize = updatedNote.fontSize
+                                fontSize = updatedNote.fontSize,
+                                categoryId = updatedNote.categoryId
                             )
                         } else {
                             viewModel.updateNote(updatedNote)

@@ -16,6 +16,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
@@ -33,6 +35,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
+import androidx.compose.ui.text.style.TextOverflow
 
 data class CalendarDay(val dayNumberText: String, val date: Date)
 
@@ -47,7 +50,9 @@ fun SimpleCalendarView(
     onDateClick: (Date) -> Unit,
     currentMonth: Int,
     currentYear: Int,
-    onMonthChange: (Int, Int) -> Unit
+    onMonthChange: (Int, Int) -> Unit,
+    showHolidays: Boolean = true,
+    calendarEvents: List<CalendarEvent> = emptyList()
 ) {
     var viewMode by remember { mutableStateOf(CalendarViewMode.MONTH) }
 
@@ -60,7 +65,9 @@ fun SimpleCalendarView(
             currentYear = currentYear,
             onMonthChange = onMonthChange,
             viewMode = viewMode,
-            onViewModeChange = { viewMode = it }
+            onViewModeChange = { viewMode = it },
+            showHolidays = showHolidays,
+            calendarEvents = calendarEvents
         )
         CalendarViewMode.WEEK -> WeekCalendarView(
             tasks = tasks,
@@ -129,7 +136,9 @@ private fun MonthCalendarView(
     currentYear: Int,
     onMonthChange: (Int, Int) -> Unit,
     viewMode: CalendarViewMode,
-    onViewModeChange: (CalendarViewMode) -> Unit
+    onViewModeChange: (CalendarViewMode) -> Unit,
+    showHolidays: Boolean = true,
+    calendarEvents: List<CalendarEvent> = emptyList()
 ) {
     // Use rememberUpdatedState to ensure we always get the latest values
     val currentMonthState by rememberUpdatedState(currentMonth)
@@ -233,8 +242,22 @@ private fun MonthCalendarView(
             Spacer(Modifier.height(16.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                // Week number header
+                Box(
+                    modifier = Modifier.width(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Wk",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                }
+
                 val dayFormatter = SimpleDateFormat("E", Locale.getDefault())
                 val tempCal = Calendar.getInstance().apply { set(Calendar.DAY_OF_WEEK, firstDayOfWeekSystem) }
                 repeat(7) {
@@ -260,18 +283,43 @@ private fun MonthCalendarView(
                 for (rowIndex in 0 until numberOfRows) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // Week number column
+                        val firstDayOfWeek = dayCellsData.getOrNull(rowIndex * 7)
+                        if (firstDayOfWeek != null) {
+                            val weekCalendar = Calendar.getInstance().apply {
+                                time = firstDayOfWeek.date
+                            }
+                            val weekNumber = weekCalendar.get(Calendar.WEEK_OF_YEAR)
+                            Box(
+                                modifier = Modifier
+                                    .width(32.dp)
+                                    .height(48.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = weekNumber.toString(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                )
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.width(32.dp))
+                        }
+
                         for (colIndex in 0 until 7) {
                             val cellIndex = rowIndex * 7 + colIndex
                             val calendarDayData = if (cellIndex < dayCellsData.size) dayCellsData[cellIndex] else null
 
                             Box(modifier = Modifier.weight(1f)) {
                                 if (calendarDayData != null) {
-                                    val isSelected = selectedDate?.toInstant()?.atZone(ZoneId.systemDefault())?.toLocalDate() ==
-                                        calendarDayData.date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-                                    val isCurrentDay = LocalDate.now() ==
-                                        calendarDayData.date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+                                    val localDate = calendarDayData.date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+                                    val isSelected = selectedDate?.toInstant()?.atZone(ZoneId.systemDefault())?.toLocalDate() == localDate
+                                    val isCurrentDay = LocalDate.now() == localDate
+                                    val holiday = if (showHolidays) HolidayProvider.getHoliday(localDate) else null
 
                                     // Optimize task filtering with remember to avoid recalculation on every recomposition
                                     val tasksForDay = remember(tasks, calendarDayData.date) {
@@ -284,6 +332,20 @@ private fun MonthCalendarView(
                                             }
                                         }
                                     }
+
+                                    // Filter calendar events for this day
+                                    val eventsForDay = remember(calendarEvents, calendarDayData.date) {
+                                        calendarEvents.filter { event ->
+                                            try {
+                                                val eventDate = Date(event.startDateTime).toInstant()
+                                                    .atZone(ZoneId.systemDefault()).toLocalDate()
+                                                eventDate == localDate
+                                            } catch (e: Exception) {
+                                                false
+                                            }
+                                        }
+                                    }
+
                                     val tasksForDayCount = tasksForDay.size
                                     val completedTasksCount = tasksForDay.count { it.isCompleted }
                                     val hasUncompletedTasks = tasksForDayCount > completedTasksCount
@@ -314,9 +376,57 @@ private fun MonthCalendarView(
                                                 color = when {
                                                     isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
                                                     isCurrentDay -> MaterialTheme.colorScheme.onSecondaryContainer
+                                                    holiday != null && holiday.type == HolidayType.FEDERAL -> MaterialTheme.colorScheme.error
                                                     else -> MaterialTheme.colorScheme.onSurface
                                                 }
                                             )
+
+                                            // Show event dots indicator
+                                            if (eventsForDay.isNotEmpty()) {
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Row(
+                                                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                                    modifier = Modifier.height(6.dp)
+                                                ) {
+                                                    // Show up to 3 event dots with their colors
+                                                    eventsForDay.take(3).forEach { event ->
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(5.dp)
+                                                                .clip(CircleShape)
+                                                                .background(Color(getEventColor(event.colorId)))
+                                                        )
+                                                    }
+                                                    // If more than 3 events, show a +N indicator
+                                                    if (eventsForDay.size > 3) {
+                                                        Text(
+                                                            text = "+${eventsForDay.size - 3}",
+                                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                                fontSize = MaterialTheme.typography.labelSmall.fontSize * 0.7f
+                                                            ),
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            // Show holiday indicator
+                                            if (holiday != null) {
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(4.dp)
+                                                        .clip(CircleShape)
+                                                        .background(
+                                                            when (holiday.type) {
+                                                                HolidayType.FEDERAL -> MaterialTheme.colorScheme.error
+                                                                HolidayType.OBSERVANCE -> MaterialTheme.colorScheme.primary
+                                                                HolidayType.RELIGIOUS -> MaterialTheme.colorScheme.tertiary
+                                                                HolidayType.INTERNATIONAL -> MaterialTheme.colorScheme.secondary
+                                                            }
+                                                        )
+                                                )
+                                            }
                                             if (tasksForDayCount > 0) {
                                                 Spacer(modifier = Modifier.height(4.dp))
                                                 // Show task count badge
@@ -689,9 +799,11 @@ fun TaskViewer(
     selectedDate: LocalDate,
     tasks: List<Task>,
     taskLists: List<TaskList>,
+    calendarEvents: List<CalendarEvent> = emptyList(),
     onAddTaskClicked: () -> Unit,
     onToggleTask: (Task) -> Unit,
-    onDeleteTask: (Task) -> Unit
+    onDeleteTask: (Task) -> Unit,
+    showHolidays: Boolean = true
 ) {
     val dateFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d")
 
@@ -712,7 +824,7 @@ fun TaskViewer(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Tasks for", style = MaterialTheme.typography.bodyMedium)
+                    Text("Schedule for", style = MaterialTheme.typography.bodyMedium)
                     Text(
                         selectedDate.format(dateFormatter),
                         style = MaterialTheme.typography.titleLarge,
@@ -726,7 +838,9 @@ fun TaskViewer(
 
             HorizontalDivider()
 
-            if (tasks.isEmpty()) {
+            val holiday = if (showHolidays) HolidayProvider.getHoliday(selectedDate) else null
+
+            if (tasks.isEmpty() && calendarEvents.isEmpty() && holiday == null) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -734,24 +848,191 @@ fun TaskViewer(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "No tasks for this day",
+                        "No tasks or events for this day",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.heightIn(max = 300.dp)
+                    modifier = Modifier.heightIn(max = 400.dp)
                 ) {
-                    items(tasks) { task ->
-                        val taskList = taskLists.find { it.id == task.listId }
-                        TaskItem(
-                            task = task,
-                            taskListColor = taskList?.color ?: 0xFF6200EE,
-                            onToggle = { onToggleTask(task) },
-                            onDelete = { onDeleteTask(task) }
-                        )
+                    // Holiday Section
+                    if (holiday != null) {
+                        item {
+                            HolidayItem(holiday = holiday)
+                        }
                     }
+
+                    // Calendar Events Section
+                    if (calendarEvents.isNotEmpty()) {
+                        item {
+                            Text(
+                                "Calendar Events",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(16.dp, 12.dp, 16.dp, 8.dp)
+                            )
+                        }
+                        items(calendarEvents) { event ->
+                            CalendarEventItem(event = event)
+                        }
+                    }
+
+                    // Tasks Section
+                    if (tasks.isNotEmpty()) {
+                        item {
+                            Text(
+                                "Tasks",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(16.dp, 12.dp, 16.dp, 8.dp)
+                            )
+                        }
+                        items(tasks) { task ->
+                            val taskList = taskLists.find { it.id == task.listId }
+                            TaskItem(
+                                task = task,
+                                taskListColor = taskList?.color ?: 0xFF6200EE,
+                                onToggle = { onToggleTask(task) },
+                                onDelete = { onDeleteTask(task) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HolidayItem(holiday: Holiday) {
+    val holidayColor = when (holiday.type) {
+        HolidayType.FEDERAL -> Color(0xFFD32F2F) // Red
+        HolidayType.OBSERVANCE -> Color(0xFF1976D2) // Blue
+        HolidayType.RELIGIOUS -> Color(0xFF7B1FA2) // Purple
+        HolidayType.INTERNATIONAL -> Color(0xFF388E3C) // Green
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(holidayColor.copy(alpha = 0.1f))
+            .border(1.dp, holidayColor.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Holiday icon
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(holidayColor),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "🎉",
+                style = MaterialTheme.typography.headlineSmall
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = holiday.name,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = when (holiday.type) {
+                    HolidayType.FEDERAL -> "Federal Holiday"
+                    HolidayType.OBSERVANCE -> "Observance"
+                    HolidayType.RELIGIOUS -> "Religious Holiday"
+                    HolidayType.INTERNATIONAL -> "International Holiday"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = holidayColor,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+@Composable
+private fun CalendarEventItem(event: CalendarEvent) {
+    val timeFormatter = SimpleDateFormat("h:mm a", Locale.getDefault())
+    val eventColor = Color(getEventColor(event.colorId))
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        // Color accent bar on the left
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .height(60.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(eventColor)
+        )
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .clip(RoundedCornerShape(8.dp))
+                .background(eventColor.copy(alpha = 0.1f))
+                .padding(12.dp)
+        ) {
+            Text(
+                text = event.summary,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Calendar name with colored dot
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(eventColor)
+                    )
+                    Text(
+                        text = event.calendarName,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                if (!event.isAllDay) {
+                    Text("•", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        text = timeFormatter.format(Date(event.startDateTime)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Text("•", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        text = "All day",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             }
         }
@@ -765,35 +1046,136 @@ private fun TaskItem(
     onToggle: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        IconButton(onClick = onToggle) {
-            Icon(
-                if (task.isCompleted) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
-                contentDescription = if (task.isCompleted) "Mark incomplete" else "Mark complete",
-                tint = Color(taskListColor)
-            )
-        }
-        Text(
-            text = task.description,
-            modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
-            style = MaterialTheme.typography.bodyLarge,
-            textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
-            color = if (task.isCompleted) 
-                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) 
-            else 
-                MaterialTheme.colorScheme.onSurface
-        )
-        IconButton(onClick = onDelete) {
-            Icon(
-                Icons.Default.Delete,
-                contentDescription = "Delete task",
-                tint = MaterialTheme.colorScheme.error
-            )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Completion checkbox
+            IconButton(onClick = onToggle) {
+                Icon(
+                    if (task.isCompleted) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
+                    contentDescription = if (task.isCompleted) "Mark incomplete" else "Mark complete",
+                    tint = Color(taskListColor)
+                )
+            }
+
+            // Task content
+            Column(modifier = Modifier.weight(1f).padding(horizontal = 8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Priority indicator
+                    if (task.priority != TaskPriority.NONE) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(task.priority.toColor()),
+                            modifier = Modifier.size(8.dp)
+                        ) {}
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+
+                    Text(
+                        text = task.description,
+                        style = MaterialTheme.typography.bodyLarge,
+                        textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null,
+                        color = if (task.isCompleted)
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        else
+                            MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                // Tags
+                if (task.tags.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier.padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        task.tags.take(3).forEach { tag ->
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                modifier = Modifier.padding(vertical = 2.dp)
+                            ) {
+                                Text(
+                                    tag,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                        }
+                        if (task.tags.size > 3) {
+                            Text(
+                                "+${task.tags.size - 3}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                // Subtask progress
+                if (task.subtasks.isNotEmpty()) {
+                    val completedSubtasks = task.subtasks.count { it.isCompleted }
+                    Row(
+                        modifier = Modifier.padding(top = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.List,
+                            contentDescription = "Subtasks",
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            "$completedSubtasks/${task.subtasks.size}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // Recurrence indicator
+                if (task.recurrence.type != RecurrenceType.NONE) {
+                    Row(
+                        modifier = Modifier.padding(top = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = "Recurring",
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            when (task.recurrence.type) {
+                                RecurrenceType.DAILY -> "Daily"
+                                RecurrenceType.WEEKLY -> "Weekly"
+                                RecurrenceType.MONTHLY -> "Monthly"
+                                RecurrenceType.YEARLY -> "Yearly"
+                                RecurrenceType.NONE -> ""
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+
+            // Delete button
+            IconButton(onClick = onDelete) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Delete task",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
         }
     }
 }

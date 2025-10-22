@@ -1,4 +1,4 @@
-        package com.cobrien.myday
+package com.cobrien.myday
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -148,6 +148,17 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Data Management Section
+            Text(
+                "Data Management",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            DataManagementSection(viewModel)
+
+            Spacer(modifier = Modifier.height(24.dp))
+
             // Calendar Sync Section
             Text(
                 "Calendar Sync",
@@ -174,7 +185,7 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("MyDay Desktop", style = MaterialTheme.typography.titleMedium)
-                    Text("Version 1.0.1", style = MaterialTheme.typography.bodyMedium)
+                    Text("Version 1.0.2", style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         "Task management with calendar and notes",
@@ -376,10 +387,214 @@ private fun NewsSourceDialog(
 }
 
 @Composable
+fun DataManagementSection(viewModel: AppViewModel) {
+    var statusMessage by remember { mutableStateOf<String?>(null) }
+    var showMessage by remember { mutableStateOf(false) }
+
+    // Single unified card for all data management
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                text = "Backup & Export",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Save your data for safekeeping or transfer to another device",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Create Backup button (primary action)
+            Button(
+                onClick = {
+                    val fileChooser = javax.swing.JFileChooser()
+                    fileChooser.dialogTitle = "Save Backup"
+                    fileChooser.selectedFile = java.io.File(DataManager.generateBackupFilename())
+                    fileChooser.fileFilter = javax.swing.filechooser.FileNameExtensionFilter("JSON files (*.json)", "json")
+
+                    if (fileChooser.showSaveDialog(null) == javax.swing.JFileChooser.APPROVE_OPTION) {
+                        val file = fileChooser.selectedFile
+                        val filePath = if (file.extension != "json") "${file.absolutePath}.json" else file.absolutePath
+
+                        val result = viewModel.createBackup(filePath)
+                        result.onSuccess {
+                            statusMessage = "✓ Backup saved successfully"
+                            showMessage = true
+                        }.onFailure { error ->
+                            statusMessage = "✗ Backup failed: ${error.message}"
+                            showMessage = true
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Save Backup")
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Restore Backup button
+            OutlinedButton(
+                onClick = {
+                    val fileChooser = javax.swing.JFileChooser()
+                    fileChooser.dialogTitle = "Restore from Backup"
+                    fileChooser.fileFilter = javax.swing.filechooser.FileNameExtensionFilter("JSON files (*.json)", "json")
+
+                    if (fileChooser.showOpenDialog(null) == javax.swing.JFileChooser.APPROVE_OPTION) {
+                        val file = fileChooser.selectedFile
+                        val result = viewModel.restoreBackup(file.absolutePath)
+
+                        result.onSuccess {
+                            statusMessage = "✓ Data restored successfully"
+                            showMessage = true
+                        }.onFailure { error ->
+                            statusMessage = "✗ Restore failed: ${error.message}"
+                            showMessage = true
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Restore from Backup")
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            HorizontalDivider()
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Advanced Export",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Simplified export buttons in a row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        val fileChooser = javax.swing.JFileChooser()
+                        fileChooser.dialogTitle = "Export Tasks"
+                        fileChooser.selectedFile = java.io.File(DataManager.generateExportFilename("Tasks", "csv"))
+                        fileChooser.fileFilter = javax.swing.filechooser.FileNameExtensionFilter("CSV files (*.csv)", "csv")
+
+                        if (fileChooser.showSaveDialog(null) == javax.swing.JFileChooser.APPROVE_OPTION) {
+                            val file = fileChooser.selectedFile
+                            val filePath = if (file.extension != "csv") "${file.absolutePath}.csv" else file.absolutePath
+
+                            val result = viewModel.exportTasksToCSV(filePath)
+                            result.onSuccess {
+                                statusMessage = "✓ Tasks exported"
+                                showMessage = true
+                            }.onFailure { error ->
+                                statusMessage = "✗ Export failed"
+                                showMessage = true
+                            }
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Tasks", style = MaterialTheme.typography.bodySmall)
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        val fileChooser = javax.swing.JFileChooser()
+                        fileChooser.dialogTitle = "Export Notes"
+                        fileChooser.selectedFile = java.io.File(DataManager.generateExportFilename("Notes", "csv"))
+                        fileChooser.fileFilter = javax.swing.filechooser.FileNameExtensionFilter("CSV files (*.csv)", "csv")
+
+                        if (fileChooser.showSaveDialog(null) == javax.swing.JFileChooser.APPROVE_OPTION) {
+                            val file = fileChooser.selectedFile
+                            val filePath = if (file.extension != "csv") "${file.absolutePath}.csv" else file.absolutePath
+
+                            val result = viewModel.exportNotesToCSV(filePath)
+                            result.onSuccess {
+                                statusMessage = "✓ Notes exported"
+                                showMessage = true
+                            }.onFailure { error ->
+                                statusMessage = "✗ Export failed"
+                                showMessage = true
+                            }
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Notes", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+
+            // Show status message
+            if (showMessage && statusMessage != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Surface(
+                    color = if (statusMessage!!.startsWith("✓"))
+                        MaterialTheme.colorScheme.primaryContainer
+                    else
+                        MaterialTheme.colorScheme.errorContainer,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = statusMessage!!,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (statusMessage!!.startsWith("✓"))
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            else
+                                MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(
+                            onClick = { showMessage = false },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Text("×", fontSize = 20.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun CalendarSyncSection(viewModel: AppViewModel) {
     var syncMessage by remember { mutableStateOf<String?>(null) }
     var showMessage by remember { mutableStateOf(false) }
+    var showGoogleCalendarSettings by remember { mutableStateOf(false) }
 
+    // Google Calendar Settings Dialog
+    if (showGoogleCalendarSettings) {
+        GoogleCalendarSettingsDialog(
+            viewModel = viewModel,
+            onDismiss = { showGoogleCalendarSettings = false }
+        )
+    }
+
+    // Google Calendar Sync Section
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -390,7 +605,42 @@ fun CalendarSyncSection(viewModel: AppViewModel) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Calendar Sync",
+                text = "Google Calendar Sync",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Sync events from your Google Calendars",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = { showGoogleCalendarSettings = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Configure Google Calendar")
+            }
+        }
+    }
+
+    Spacer(modifier = Modifier.height(16.dp))
+
+    // ICS File Import/Export Section
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "File Import/Export",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -492,4 +742,160 @@ fun CalendarSyncSection(viewModel: AppViewModel) {
             }
         }
     }
+}
+
+@Composable
+fun GoogleCalendarSettingsDialog(
+    viewModel: AppViewModel,
+    onDismiss: () -> Unit
+) {
+    val settings by viewModel.settings.collectAsState()
+    var isAuthenticating by remember { mutableStateOf(false) }
+    var authError by remember { mutableStateOf<String?>(null) }
+    var availableCalendars by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
+    var selectedCalendars by remember { mutableStateOf(settings.googleCalendar.selectedCalendars) }
+    var syncEnabled by remember { mutableStateOf(settings.googleCalendar.syncEnabled) }
+
+    val isAuthenticated = viewModel.isGoogleCalendarAuthenticated()
+
+    LaunchedEffect(isAuthenticated) {
+        if (isAuthenticated) {
+            availableCalendars = viewModel.getGoogleCalendarList()
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Google Calendar Settings") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                if (!isAuthenticated) {
+                    // Authentication section
+                    Text(
+                        "Connect your Google Calendar to sync events",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = {
+                            isAuthenticating = true
+                            authError = null
+                            val result = viewModel.initializeGoogleCalendar()
+                            isAuthenticating = false
+
+                            result.onSuccess {
+                                availableCalendars = viewModel.getGoogleCalendarList()
+                            }.onFailure { error ->
+                                authError = error.message ?: "Authentication failed"
+                            }
+                        },
+                        enabled = !isAuthenticating,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(if (isAuthenticating) "Authenticating..." else "Sign in with Google")
+                    }
+
+                    if (authError != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            authError!!,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                } else {
+                    // Sync settings
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Enable Sync", style = MaterialTheme.typography.bodyLarge)
+                        Switch(
+                            checked = syncEnabled,
+                            onCheckedChange = { syncEnabled = it }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    if (syncEnabled) {
+                        Text(
+                            "Select Calendars to Sync",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        availableCalendars.forEach { (calendarId, calendarName) ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        selectedCalendars = if (selectedCalendars.contains(calendarId)) {
+                                            selectedCalendars - calendarId
+                                        } else {
+                                            selectedCalendars + calendarId
+                                        }
+                                    }
+                                    .padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = selectedCalendars.contains(calendarId),
+                                    onCheckedChange = { checked ->
+                                        selectedCalendars = if (checked) {
+                                            selectedCalendars + calendarId
+                                        } else {
+                                            selectedCalendars - calendarId
+                                        }
+                                    }
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(calendarName, style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.signOutGoogleCalendar()
+                            selectedCalendars = emptyList()
+                            syncEnabled = false
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Sign Out")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (isAuthenticated) {
+                        viewModel.setGoogleCalendarSyncEnabled(syncEnabled)
+                        viewModel.setSelectedGoogleCalendars(selectedCalendars)
+                    }
+                    onDismiss()
+                }
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

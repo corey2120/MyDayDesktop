@@ -2,7 +2,7 @@
 
 > A comprehensive productivity desktop application that combines Tasks, Calendar, Notes, and News to help you organize your day.
 
-[![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)](https://github.com/yourusername/MyDayDesktop/releases)
+[![Version](https://img.shields.io/badge/version-1.0.2-blue.svg)](https://github.com/yourusername/MyDayDesktop/releases)
 [![Platform](https://img.shields.io/badge/platform-Linux-orange.svg)](https://www.linux.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Kotlin](https://img.shields.io/badge/kotlin-2.0.0-purple.svg)](https://kotlinlang.org/)
@@ -22,9 +22,14 @@
 - **Task Integration** - See all your tasks directly in the calendar
 - **Visual Indicators** - Days with tasks are clearly highlighted
 - **Smooth Navigation** - Intuitive controls for browsing dates
-- **Calendar Sync** - Import/Export tasks via iCalendar (.ics) format
+- **Google Calendar Sync** 🆕 - Live integration with Google Calendar
+  - OAuth 2.0 secure authentication
+  - Read calendar events in real-time
+  - Multi-calendar support
+  - Auto-sync when changing months
+  - See events alongside your tasks
+- **Calendar Import/Export** - Import/Export tasks via iCalendar (.ics) format
   - Compatible with Google Calendar, Outlook, Apple Calendar
-  - Two-way sync support
   - Duplicate prevention
 
 ### 📝 Notes (Journal-style)
@@ -57,67 +62,21 @@
 
 ## Installation
 
-### 🎯 Recommended: Gear Lever (Best Experience)
+### Quick Start (AppImage - Recommended)
 
-[Gear Lever](https://flathub.org/apps/it.mijorus.gearlever) provides the best AppImage experience with automatic desktop integration, making MyDay appear in your application menu like any other installed app.
-
-#### Step 1: Install Gear Lever (if not already installed)
-```bash
-flatpak install flathub it.mijorus.gearlever
-```
-
-#### Step 2: Download MyDay AppImage
-```bash
-# Download the latest release
-wget https://github.com/yourusername/MyDayDesktop/releases/download/v1.0.1/MyDay-1.0.1-x86_64.AppImage
-
-# Move to Applications folder (recommended)
-mkdir -p ~/Applications
-mv MyDay-1.0.1-x86_64.AppImage ~/Applications/
-chmod +x ~/Applications/MyDay-1.0.1-x86_64.AppImage
-```
-
-#### Step 3: Add to Gear Lever
-1. Open Gear Lever from your application menu
-2. Click "Add AppImage" button (or drag-and-drop)
-3. Navigate to `~/Applications/`
-4. Select `MyDay-1.0.1-x86_64.AppImage`
-
-**That's it!** MyDay now appears in your application menu and launcher. 🎉
-
-#### Benefits of Gear Lever:
-- ✅ Automatic desktop integration
-- ✅ Searchable from your app launcher
-- ✅ Proper icon and menu entry
-- ✅ Easy updates and management
-- ✅ One-click uninstall
-
-### Alternative: Direct AppImage
-
-If you prefer not to use Gear Lever:
-
-1. **Download and run:**
+1. **Download the latest release:**
    ```bash
    wget https://github.com/yourusername/MyDayDesktop/releases/download/v1.0.1/MyDay-1.0.1-x86_64.AppImage
-   chmod +x MyDay-1.0.1-x86_64.AppImage
-   ./MyDay-1.0.1-x86_64.AppImage
    ```
 
-2. **Optional: Manual desktop integration:**
+2. **Make it executable:**
    ```bash
-   # Create desktop entry
-   cat > ~/.local/share/applications/myday.desktop << 'EOF'
-   [Desktop Entry]
-   Type=Application
-   Name=MyDay Desktop
-   Comment=Task manager combining Tasks, Calendar, Notes and News
-   Exec=/path/to/MyDay-1.0.1-x86_64.AppImage
-   Icon=myday
-   Categories=Office;Productivity;
-   Terminal=false
-   EOF
+   chmod +x MyDay-1.0.1-x86_64.AppImage
+   ```
 
-   update-desktop-database ~/.local/share/applications/
+3. **Run it:**
+   ```bash
+   ./MyDay-1.0.1-x86_64.AppImage
    ```
 
 ### Tarball Installation
@@ -286,7 +245,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 Having issues? Here are some resources:
 - 📖 [Quick Start Guide](QUICKSTART.md)
-- ⚙️ [Gear Lever Setup Guide](GEAR_LEVER_SETUP.md) - Detailed Gear Lever instructions
 - 🔧 [Troubleshooting](TROUBLESHOOTING.md)
 - 🐛 [Report a Bug](https://github.com/yourusername/MyDayDesktop/issues)
 - 💬 [Discussions](https://github.com/yourusername/MyDayDesktop/discussions)

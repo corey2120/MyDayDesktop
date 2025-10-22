@@ -8,9 +8,9 @@ set -e
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_DIR"
 
-VERSION="1.0.1"
-APP_NAME="MyDay"
-PACKAGE_NAME="MyDay-${VERSION}"
+VERSION="1.0.2"
+APP_NAME="MyDayDesktop"
+PACKAGE_NAME="MyDayDesktop-${VERSION}"
 
 echo "======================================"
 echo "  MyDay Desktop Build Script"

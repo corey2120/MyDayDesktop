@@ -27,7 +27,8 @@ class GoogleCalendarService {
         private const val APPLICATION_NAME = "MyDay Desktop"
         private val JSON_FACTORY = GsonFactory.getDefaultInstance()
         private val SCOPES = listOf(CalendarScopes.CALENDAR_READONLY)
-        private const val CREDENTIALS_FILE_PATH = "credentials.json"
+        private const val MYDAY_DIRECTORY = ".myday"
+        private const val CREDENTIALS_FILE_NAME = "credentials.json"
         private const val TOKENS_DIRECTORY_PATH = ".myday/tokens"
     }
 
@@ -38,18 +39,19 @@ class GoogleCalendarService {
      */
     @Throws(IOException::class)
     private fun getCredentials(httpTransport: NetHttpTransport): Credential {
-        // Load client secrets from credentials.json
-        val credentialsFile = File(CREDENTIALS_FILE_PATH)
+        // Load client secrets from credentials.json in user's home directory
+        val myDayDir = File(System.getProperty("user.home"), MYDAY_DIRECTORY)
+        val credentialsFile = File(myDayDir, CREDENTIALS_FILE_NAME)
 
         if (!credentialsFile.exists()) {
             throw IOException(
-                "Credentials file not found: $CREDENTIALS_FILE_PATH\n" +
+                "Credentials file not found: ${credentialsFile.absolutePath}\n" +
                 "Please download credentials.json from Google Cloud Console:\n" +
                 "1. Go to https://console.cloud.google.com/\n" +
                 "2. Create a new project or select existing one\n" +
                 "3. Enable Google Calendar API\n" +
                 "4. Create OAuth 2.0 credentials (Desktop application)\n" +
-                "5. Download credentials.json and place it in the app directory"
+                "5. Download credentials.json and place it in ~/.myday/"
             )
         }
 

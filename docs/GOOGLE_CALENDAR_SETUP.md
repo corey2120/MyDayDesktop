@@ -61,16 +61,17 @@ Before you can use Google Calendar sync, you need to:
 
 ### 5. Install credentials.json
 
-Place the `credentials.json` file in the MyDay Desktop application directory:
+Place the `credentials.json` file in the MyDay data directory:
 
 ```bash
-# Linux
-/home/yourusername/Projects/MyDayDesktop/credentials.json
+# Copy credentials.json to the MyDay directory
+cp credentials.json ~/.myday/
 
-# Or in the directory where you run the app from
+# Verify it's in the right place
+ls ~/.myday/credentials.json
 ```
 
-The file should be in the same directory as the MyDay Desktop executable or where you run `./gradlew run`.
+The file must be located at `~/.myday/credentials.json` (in your home directory). This ensures the app can find it regardless of where you launch it from.
 
 ## Using Google Calendar Sync
 
@@ -109,7 +110,7 @@ The file should be in the same directory as the MyDay Desktop executable or wher
 
 ### "Credentials file not found" Error
 
-**Solution**: Make sure `credentials.json` is in the correct directory (same folder as the app).
+**Solution**: Make sure `credentials.json` is located at `~/.myday/credentials.json`. If you're launching from Gear Lever or another launcher, the file must be in the `.myday` directory in your home folder, not in the project directory.
 
 ### "Authentication failed" Error
 
@@ -167,4 +168,4 @@ If you encounter issues:
 
 ---
 
-**Last Updated**: October 21, 2025 (Version 1.0.2)
+**Last Updated**: October 22, 2025 (Version 1.0.2)

@@ -2,7 +2,7 @@
 
 A comprehensive productivity desktop application that combines Tasks, Calendar, Notes, and News to help you organize your day.
 
-![Version](https://img.shields.io/badge/version-1.0.1-blue) ![Platform](https://img.shields.io/badge/platform-Linux-orange) ![License](https://img.shields.io/badge/license-MIT-green) ![Kotlin](https://img.shields.io/badge/Kotlin-1.9.0-purple) ![Compose](https://img.shields.io/badge/Compose-1.5.0-blue)
+![Version](https://img.shields.io/badge/version-1.0.2-blue) ![Platform](https://img.shields.io/badge/platform-Linux-orange) ![License](https://img.shields.io/badge/license-MIT-green) ![Kotlin](https://img.shields.io/badge/Kotlin-1.9.0-purple) ![Compose](https://img.shields.io/badge/Compose-1.5.0-blue)
 
 ## Features
 
@@ -69,19 +69,19 @@ A comprehensive productivity desktop application that combines Tasks, Calendar, 
 Download the latest release:
 
 ```bash
-wget https://github.com/corey2120/MyDayDesktop/releases/download/v1.0.1/MyDay-1.0.1-x86_64.AppImage
+wget https://github.com/corey2120/MyDayDesktop/releases/download/v1.0.2/MyDayDesktop-1.0.2-x86_64.AppImage
 ```
 
 Make it executable:
 
 ```bash
-chmod +x MyDay-1.0.1-x86_64.AppImage
+chmod +x MyDayDesktop-1.0.2-x86_64.AppImage
 ```
 
 Run it:
 
 ```bash
-./MyDay-1.0.1-x86_64.AppImage
+./MyDayDesktop-1.0.2-x86_64.AppImage
 ```
 
 ### Tarball Installation
@@ -89,9 +89,9 @@ Run it:
 Download and extract:
 
 ```bash
-wget https://github.com/corey2120/MyDayDesktop/releases/download/v1.0.1/MyDay-1.0.1-linux.tar.gz
-tar xzf MyDay-1.0.1-linux.tar.gz
-cd MyDay-1.0.1-linux
+wget https://github.com/corey2120/MyDayDesktop/releases/download/v1.0.2/MyDayDesktop-1.0.2-linux.tar.gz
+tar xzf MyDayDesktop-1.0.2-linux.tar.gz
+cd MyDayDesktop-1.0.2-linux
 ```
 
 Run the launcher:
@@ -103,7 +103,7 @@ Run the launcher:
 ### System-wide Installation (Optional)
 
 ```bash
-sudo cp -r MyDay-1.0.1-linux /opt/myday
+sudo cp -r MyDayDesktop-1.0.2-linux /opt/myday
 sudo ln -s /opt/myday/myday.sh /usr/local/bin/myday
 ```
 
@@ -219,14 +219,22 @@ Built with modern, robust technologies:
 
 ## Version History
 
-### v1.0.1 (Latest - October 2025)
+### v1.0.2 (Latest - October 2025)
 
-- ✅ Calendar Sync - iCalendar import/export
-- ✅ Calendar Redesign - Month/Week/Day views
-- ✅ News Widget - Clickable headlines with caching
-- ✅ Professional Icon - 512x512 calendar-themed
-- ✅ Performance - Optimized rendering and caching
-- ✅ Bug Fixes - Deprecated icons, navigation improvements
+- ✅ Enhanced Calendar Features - Improved month/week/day views
+- ✅ Google Calendar Integration - Live sync with OAuth 2.0
+- ✅ UI/UX Improvements - Better navigation and user experience
+- ✅ Performance Optimizations - Faster rendering and caching
+- ✅ Bug Fixes - Stability improvements
+
+### v1.0.1 (October 2025)
+
+- Calendar Sync - iCalendar import/export
+- Calendar Redesign - Month/Week/Day views
+- News Widget - Clickable headlines with caching
+- Professional Icon - 512x512 calendar-themed
+- Performance - Optimized rendering and caching
+- Bug Fixes - Deprecated icons, navigation improvements
 
 ### v1.0.0 (October 2025)
 

@@ -115,21 +115,29 @@ APPRUN_EOF
     # Copy desktop file
     cp com.cobrien.MyDay.desktop "$APPDIR/myday.desktop"
     cp com.cobrien.MyDay.desktop "$APPDIR/usr/share/applications/"
-    
-    # Create a simple icon (text-based SVG)
-    cat > "$APPDIR/myday.png" << 'ICON_EOF'
+
+    # Copy the proper icon from resources
+    if [ -f "src/main/resources/icon.png" ]; then
+        echo "Using icon from src/main/resources/icon.png"
+        cp "src/main/resources/icon.png" "$APPDIR/myday.png"
+    else
+        echo "Warning: icon.png not found, creating placeholder"
+        # Create a simple icon (text-based SVG) as fallback
+        cat > "$APPDIR/myday.svg" << 'ICON_EOF'
 <svg width="256" height="256" xmlns="http://www.w3.org/2000/svg">
   <rect width="256" height="256" fill="#6200EE" rx="32"/>
   <text x="50%" y="50%" font-size="120" fill="white" text-anchor="middle" dy=".3em" font-family="Arial, sans-serif" font-weight="bold">MD</text>
   <circle cx="200" cy="56" r="24" fill="#03DAC6"/>
 </svg>
 ICON_EOF
-    
-    # Convert SVG to PNG if possible, otherwise use a placeholder
-    if command -v convert &> /dev/null; then
-        convert "$APPDIR/myday.png" -resize 256x256 "$APPDIR/myday.png" 2>/dev/null || true
+
+        # Convert SVG to PNG if possible
+        if command -v convert &> /dev/null; then
+            convert "$APPDIR/myday.svg" -resize 512x512 "$APPDIR/myday.png" 2>/dev/null || true
+            rm -f "$APPDIR/myday.svg"
+        fi
     fi
-    
+
     cp "$APPDIR/myday.png" "$APPDIR/usr/share/icons/hicolor/256x256/apps/"
     cp "$APPDIR/myday.png" "$APPDIR/.DirIcon"
     

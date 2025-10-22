@@ -28,3 +28,16 @@ build-dir/
 
 # User data
 .myday/
+
+# Credentials and secrets
+credentials.json
+*.credentials
+
+# Distribution artifacts
+dist/
+appimage/
+MyDayDesktop.AppDir/
+MyDay-*-linux/
+
+# Temporary files
+checksums.txt
